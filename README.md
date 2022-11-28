@@ -11,7 +11,7 @@ Name(s) of the folks involved in this project: Heather and Beth
 
 Working title: Applying ecological theories to predict metal sorption onto plastic debris
 
-Project summary (1-2 sentences): We will reanalyze a 2015 metal dataset using code and theories we discussed in class to see if Neutral Theory can be applied to pollution data in the same way that it is used for species analysis.
+Project summary (1-2 sentences): We will reanalyze a 2015 metal dataset (published work:https://pubmed.ncbi.nlm.nih.gov/31146064/) using code and theories we discussed in class to see if Neutral Theory can be applied to pollution data in the same way that it is used for species analysis.
 
 What is especially interesting (to you!) about this project?: Heather knows the data well and spent a lot of time looking at it. It would be really neat to see if this branch of ecology can be used to gain insight into environmental pollution behavior.
 
