@@ -7,7 +7,7 @@ This is a repository for Heather's final project for EcoEvoTheory Fall 2022.
 
 ## Project Proposal
 
-Name(s) of the folks involved in this project: Heather and Beth
+Name(s) of the folks involved in this project: Heather and Beth (and Boo for support)
 
 Working title: Applying ecological theories to predict metal sorption onto plastic debris
 
