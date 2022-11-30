@@ -15,9 +15,9 @@ Project summary (1-2 sentences): We will reanalyze a 2015 metal dataset (publish
 
 Questions:
 
-* Can neutral theory predict the demographics of metal adsorpted to different materials?
+* Can neutral theory predict the observed accumulation over time of metal adsorpted to different materials?
 
-* Do materials with higher immigration such as glass show more evenness in metal demographics than lower immigration materials?
+* Do materials with faster initial sorption (immigration) such as glass show more evenness in metal demographics than lower immigration materials?
 
 * What impact does site location have on the fit of the neutral theory models?
 
