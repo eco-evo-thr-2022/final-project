@@ -66,7 +66,7 @@ ggplot(data4, aes(rank, mean_replicate, color=Day.deploy)) +
   theme_bw()
 ```
 
-##WOW! That's unexpected- an inverted slope from most SAD data. Not sure what to make of it, but we'll figure it out as we proceed.
+##WOW! That's cool, but I should have ranked in descending order. We'll figure it out as we proceed.
 
 The next step is to follow along Andy in his likelihood methods video and maybe invert the functions he tries to fit.
 
