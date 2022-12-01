@@ -1,7 +1,7 @@
 # HR and BD's's final-project
 
 
-This is a repository for Heather's final project for EcoEvoTheory Fall 2022.
+This is a repository for Heather and Beth's final project for EcoEvoTheory Fall 2022.
 
 
 
