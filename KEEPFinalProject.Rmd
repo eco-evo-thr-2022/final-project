@@ -1,0 +1,364 @@
+---
+title: "BIO 597 Final Project: Applying Ecological Theories to Predict Metal Sorption onto Plastic Debris"
+author: "Heather Richard, Beth Davis"
+date: "2022-11-30"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(hillR)
+library(reshape2)
+library(dplyr)
+library(MASS)
+
+data<-read.csv('~/Desktop/Heather.Richard/EvoEcoTheory/metalsdata.csv')
+head(data)
+```
+
+## Setting up the dataframe
+
+In order to explore the data and run analyses as though it were species data, we'll have to take a few extra steps right off the bat. 
+  1. We'll need to average the replicates and add a columm for standard deviation (although we may not use this).
+  2. We'll need to melt the data using the reshape2 package so that all metals are under the column heading "variable" and the metal amounts are under the heading "value". 
+  3. We'll need to create a column of rank abundance for the metals grouped by material and location.
+  *optional* 4. We might add a column for the metals that show what metal family (alkali, alkaline-earth, transition, etc.) to see if patterns in metal sorption is related to metal type. 
+  
+  Once the data is set up, we can visualize the makeshift species abundance distribution relationships, fit a predictive model and use Hill Numbers to look at the changes over time. 
+  
+
+```{r setting up the data frame}
+##Melt data with reshape2 to create the dataframe we need but make data1 to keep optical density separate in case...
+
+data1<-melt(data, id = c("Number","Sample","Weight","Unbrushed", "Location","Material","Day.deploy","Optical.density","Replicate")) 
+
+data2<-melt(data, id = c("Number","Sample","Weight","Unbrushed", "Location","Material","Day.deploy","Replicate")) 
+
+#group data and average replicates and tack on sd using dplyr
+
+data3 <- data2 %>% group_by(variable, Location, Day.deploy, Material) %>% summarize(mean_replicate=mean(value), stdev=sd(value))
+
+head(data3)
+
+```
+#Now create a rank column
+
+```{r}
+
+data4<-data3 %>% arrange(variable, mean_replicate) %>%
+    group_by(Location, Material, Day.deploy) %>% 
+    mutate(rank = rank(mean_replicate))
+head(data4)
+```
+
+#Lets see how that looks using code from "Notes on likelihood" from lab 10: https://github.com/eco-evo-thr-2022/10-likelihood/blob/main/likelihood_how-to.Rmd. 
+
+```{r sad-data}
+
+ggplot(data4, aes(rank, mean_replicate, color=Day.deploy)) +
+  geom_point() +
+  scale_y_log10() +
+  scale_colour_gradient() +
+  facet_grid(Location~Material) +
+  theme_bw()
+```
+
+##Cool! I should have done the ranking in decending order?
+Interesting similarities in the shape of the line and changes over time for LDPE and PLA. 
+
+The next step is to follow along Andy in his likelihood methods video and maybe invert the functions he tries to fit.
+
+```{r}
+plot(sort(data4$mean_replicate, decreasing = TRUE), log = 'y', 
+     xlab = 'Species rank', ylab = 'Abundance') 
+```
+#probably need to subset those. 
+
+
+```{r}
+head(data4)
+CMA<-subset(data4, Location=="CM")
+EOS<-subset(data4, data4$Location=="RTC")
+EOS_PLA<-subset(EOS, EOS$Material=="PLA")
+EOS_Glass<-subset(EOS, EOS$Material=="Glass")
+EOS_LDPE<-subset(EOS, EOS$Material=="LDPE")
+CMA_PLA<-subset(CMA, CMA$Material=="PLA")
+CMA_Glass<-subset(CMA, CMA$Material=="Glass")
+CMA_LDPE<-subset(CMA, CMA$Material=="LDPE")
+
+
+par(mfrow=c(2,3))
+plot(sort(EOS_LDPE$mean_replicate, decreasing = TRUE), log = 'y', 
+     xlab = 'Species rank', ylab = 'Abundance') 
+plot(sort(EOS_PLA$mean_replicate, decreasing = TRUE), log = 'y', 
+     xlab = 'Species rank', ylab = 'Abundance') 
+plot(sort(EOS_Glass$mean_replicate, decreasing = TRUE), log = 'y', 
+     xlab = 'Species rank', ylab = 'Abundance') 
+plot(sort(CMA_LDPE$mean_replicate, decreasing = TRUE), log = 'y', 
+     xlab = 'Species rank', ylab = 'Abundance') 
+plot(sort(CMA_PLA$mean_replicate, decreasing = TRUE), log = 'y', 
+     xlab = 'Species rank', ylab = 'Abundance') 
+plot(sort(CMA_Glass$mean_replicate, decreasing = TRUE), log = 'y', 
+     xlab = 'Species rank', ylab = 'Abundance') 
+
+```
+
+```
+
+
+```{r logseries-eq}
+
+lseries <- function(b, n) {
+   1/log(1 / (1 - exp(-b))) * exp(-b * n) / n
+}
+
+lseries(0.001, 0.001:50)
+
+hist(data4$mean_replicate, probability = TRUE)
+
+points(0.001:50, lseries(0.0001, 0.001:50), col = 'red', type = 'b')
+points(0.001:50, lseries(0.001, 0.001:50), col = 'orange', type = 'b')
+points(0.001:50, lseries(0.01, 0.001:50), col = 'blue', type = 'b')
+```
+#Probably this histogram isn't ideal- might need to play with scale/bins
+Lets see what happens when we play with log scale and inversion
+```{r}
+
+lseries <- function(b, n) {
+  1 / log(1 / (1 - exp(-b))) * exp(-b * n) / n
+}
+
+lseries(0.001, 0.001:50)
+
+hist(log(data4$mean_replicate), probability = TRUE)
+
+points(0.001:50, lseries(0.0001, 0.001:50), col = 'red', type = 'b')
+points(0.001:50, lseries(0.001, 0.001:50), col = 'orange', type = 'b')
+points(0.001:50, lseries(0.01, 0.001:50), col = 'blue', type = 'b')
+
+x <- seq(-10, 5, by = .1)
+y <- dnorm(x, mean = -2.0, sd = 3.0)
+points(x,y, col="green")
+
+```
+##Have to log transform equation##
+
+```{r likelihood-intro}
+data4$mean10<-10000*data4$mean_replicate
+
+sum(log(lseries(0.5, data4$mean10)))
+sum(log(lseries(0.0005, data4$mean10)))
+sum(log(lseries(0.0001, data4$mean10)))
+
+
+```
+#hmmm not sure why I'm only getting Inf or NaN. Let's move on
+
+
+```{r ll-curve, echo=FALSE}
+bb <- seq(0.001, 0.1, length.out = 50)
+ll <- sapply(bb, function(b) sum(log(lseries(b, data4$mean_replicate))))
+pdf('fig_ll.pdf', width = 4, height = 4)
+par(bg = 'black', fg = 'white', col.axis = 'white', col.lab = 'white')
+plot(bb, ll, xlab = 'b parameter', ylab = 'log likelihood')
+dev.off()
+```
+
+
+```{r maxloglik}
+
+llLSeries <- function(b, n) {
+    sum(log(lseries(b, n)))
+}
+optimize(llLSeries, interval = c(0, 10), n = data4$mean_replicate, maximum = TRUE)
+```
+
+```{r pika}
+#devtools::install_github('ajrominger/pika')
+library(pika)
+s <- sad(data4$mean_replicate, 'lseries')
+s
+ 
+logLik(s)
+```
+
+```{r}
+plot(s, ptype = 'rad') #how can I do this in ggplot so I can facet by variables?
+logLikZ(s)
+#pchisq(???, df = 1, lower.tail = FALSE)
+```
+
+```{r model-comparison}
+
+ls <- sad(data4$mean_replicate, 'lseries')
+ln <- sad(data4$mean_replicate, 'plnorm')
+nb <- sad(data4$mean_replicate, 'tnegb')
+
+AIC(ls)
+AIC(ln)
+AIC(nb)
+
+plot(ls, ptype = 'rad', log = 'y', main = 'logseries')
+plot(ln, ptype = 'rad', log = 'y', main = 'lognormal')
+plot(nb, ptype = 'rad', log = 'y', main = 'negbinom')
+
+logLikZ(ls)
+logLikZ(nb)
+
+#IF AIC is smaller by at least 2, it's substantially better
+```
+##We're going to have to figure out how to deal with our non-interger numbers.
+We'll use the MASS package 'fitdistr' using this tutorial: http://www.di.fc.ul.pt/~jpn/r/distributions/fitting.html
+
+```{r}
+
+dist<-log(data4$mean_replicate)
+dist2<-dist[is.infinite(dist)] <- NA
+fit <- fitdistr(dist3, densfun="normal")  
+fit
+```
+
+```{r}
+hist(dist3, pch=20, breaks=25, prob=TRUE, main="")
+curve(dnorm(x, fit$estimate[1], fit$estimate[2]), col="red", lwd=2, add=T)
+```
+
+##this isnt helpful I don't know how to deal with my infiniteness
+# c(0,1) are just initial guesses
+```{r}
+log_likelihood <- function(params) { -sum(dnorm(data4, params[1], params[2], log=TRUE)) }
+fit2 <- optim(c(0,1), log_likelihood)    
+fit2
+```
+
+##Fitdistrplus is awesome!!
+```{r}
+library(fitdistrplus)
+
+plotdist(dist, histo = TRUE, demp = TRUE)
+```
+
+descriptive stats like the moments still skunked by infinite
+summary statistics
+------
+min:  -11.81553   max:  4.924509 
+median:  -2.720764 
+mean:  -2.196845 
+estimated sd:  3.769838 
+estimated skewness:  0.07809318 
+estimated kurtosis:  2.152025 
+
+```{r}
+dist2 <- dist[!is.infinite(dist),]
+dist3<- na.omit(dist) 
+dist3<-as.numeric(dist3)
+descdist(dist3, discrete=FALSE, boot=500)
+```
+
+#is it valid to just make values positive for weibull dist?
+```{r}
+dist_pos<-dist3+20
+
+fit_w  <- fitdist(dist_pos, "weibull")
+fit_g  <- fitdist(dist_pos, "gamma")
+fit_ln <- fitdist(dist_pos, "lnorm")
+summary(fit_ln)
+```
+
+```{r}
+par(mfrow=c(2,2))
+plot.legend <- c("Weibull", "lognormal", "gamma")
+denscomp(list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+cdfcomp (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+qqcomp  (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+ppcomp  (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+```
+
+```{r}
+par(mfrow=c(1,1))
+
+data("endosulfan", package = "fitdistrplus")
+my_data <- data4$mean_replicate
+
+fit_ln <- fitdist(dist_pos, "lnorm")
+cdfcomp(fit_ln, xlogscale = TRUE, ylogscale = TRUE)
+```
+
+```{r}
+library(actuar)
+
+fit_ll <- fitdist(dist_pos, "llogis", start = list(shape = 1, scale = 500))
+fit_P  <- fitdist(dist_pos, "pareto", start = list(shape = 1, scale = 500))
+fit_B  <- fitdist(dist_pos, "burr",   start = list(shape1 = 0.3, shape2 = 1, rate = 1))
+cdfcomp(list(fit_ln, fit_ll, fit_P), xlogscale = TRUE, ylogscale = TRUE,
+        legendtext = c("lognormal", "loglogistic", "Pareto"))
+```
+#goodness of fit stats
+```{r}
+gofstat(list(fit_ln, fit_ll, fit_P), fitnames = c("lnorm", "llogis", "Pareto"))
+```
+#estimate uncertainty
+```{r}
+ests <- bootdist(fit_ll, niter = 1e3)
+summary(ests)
+```
+
+```{r}
+plot(ests)
+```
+
+# 95% percentile bootstrap confidence interval
+```{r}
+quantile(ests, probs=.05) 
+```
+
+
+#Try manual hill numbers
+
+```{r}
+ggplot(data3, aes(mean_replicate, variable)) +
+  scale_x_log10() +
+  geom_line()+
+  facet_grid(Location~Material)
+```
+
+## From Biodiversity Metrics lecture
+
+equation 3a qD = () p_i is the relative abundance of species (scales sums to 1) similar to song_sad but different. where for each species p_i is the number of plays for that species/song q is the order of the hill number. q cannot be exactly 1 to get Hill numbers as q gets close to 1 use: q\<-1-E-5 ##don't get this part can also use the equation 3b from the hill paper
+
+```{r pressure, echo=TRUE}
+songs_sad<-data2$value
+q<- 2
+songs_relabund<- songs_sad/sum(songs_sad)
+head(songs_relabund)
+sum(songs_relabund)
+```
+
+now raise relative abundance of species to the power of q and take the sum of all values\
+
+```{r}
+songs_relabund_toq<- songs_relabund^q
+head(songs_relabund_toq)
+```
+
+```{r}
+summed_relabund<-sum(songs_relabund_toq)
+summed_relabund_exponent <- summed_relabund ^(1/1-q)
+summed_relabund_exponent
+```
+
+In some cases it breaks, but for the most part this command below does what we did manually in the steps above
+
+```{r}
+hillR::hill_taxa(songs_sad, q)
+```
+
+
+```{r}
+use_git()
+```
+
