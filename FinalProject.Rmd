@@ -16,9 +16,24 @@ library(reshape2)
 library(dplyr)
 library(MASS)
 
-data<-read.csv('~/Desktop/Heather.Richard/EvoEcoTheory/metalsdata.csv')
+data<-read.csv('~/Desktop/Heather.Richard//EvoEcoTheory/metalsdata.csv')
 head(data)
 ```
+
+##Project Overview
+#What was your question?
+
+#How did you try to approach it?
+
+#What did you find? OR, what obstacles did you encounter?
+#What do you think are the next steps?
+
+#What would be your next questions based on the work you have done so far?
+
+#What would be your words of wisdom to someone trying to continue this work?
+
+#What would you like to take away/remember most about the final project experience?
+
 
 ## Setting up the dataframe
 
@@ -218,6 +233,9 @@ We'll use the MASS package 'fitdistr' using this tutorial: http://www.di.fc.ul.p
 
 dist<-log(data4$mean_replicate)
 dist2<-dist[is.infinite(dist)] <- NA
+dist3<- na.omit(dist2) 
+dist3<-as.numeric(dist3)
+
 fit <- fitdistr(dist3, densfun="normal")  
 fit
 ```
