@@ -19,6 +19,20 @@ library(MASS)
 data<-read.csv('~/Desktop/Heather.Richard/EvoEcoTheory/metalsdata.csv')
 head(data)
 ```
+##Project Overview
+#What was your question?
+
+#How did you try to approach it?
+
+#What did you find? OR, what obstacles did you encounter?
+#What do you think are the next steps?
+
+#What would be your next questions based on the work you have done so far?
+
+#What would be your words of wisdom to someone trying to continue this work?
+
+#What would you like to take away/remember most about the final project experience?
+
 
 ## Setting up the dataframe
 
