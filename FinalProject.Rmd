@@ -1,7 +1,7 @@
 ---
 title: "BIO 597 Final Project: Applying Ecological Theories to Predict Metal Sorption onto Plastic Debris"
 author: "Heather Richard, Beth Davis"
-date: "2022-11-30"
+date: "2022-12-07"
 output:
   pdf_document: default
   html_document: default
@@ -26,6 +26,20 @@ head(data)
 data<-read.csv('~/Desktop/Heather.Richard//EvoEcoTheory/metalsdata.csv')
 head(data)
 ```
+##Project Overview
+#What was your question?
+
+#How did you try to approach it?
+
+#What did you find? OR, what obstacles did you encounter?
+#What do you think are the next steps?
+
+#What would be your next questions based on the work you have done so far?
+
+#What would be your words of wisdom to someone trying to continue this work?
+
+#What would you like to take away/remember most about the final project experience?
+
 
 ##Project Overview
 #What was your question?

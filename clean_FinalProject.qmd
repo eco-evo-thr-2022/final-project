@@ -44,6 +44,7 @@ head(data)
 
 ### We need to format it so it will work with some of the code we tried in class. We use optical density as a proxy for biofilm and keep it as an ID variable for later analysis.
 
+
 ```{r}
 data1<-melt(data, id = c("Number","Sample","Weight","Unbrushed", "Location","Material","Day.deploy","Optical.density","Replicate")) 
 
@@ -57,7 +58,9 @@ data2 <- data1 %>% group_by(variable, Location, Day.deploy, Material) %>% summar
 head(data2)
 ```
 
+
 ### Then add a column for rank so we can work with Hill Numbers later.
+
 
 ```{r}
 data3<-data2 %>% arrange(variable, mean_replicate) %>%
@@ -75,7 +78,9 @@ ggplot(data3, aes(rank, mean_replicate, color=Day.deploy)) +
   theme_bw()
 ```
 
+
 ### We start by running the code from "[Notes on likelihood](https://github.com/eco-evo-thr-2022/10-likelihood/blob/main/likelihood_how-to.Rmd)" from lab 10. To make the data look like SADs, we need to sort in decreasing rank abundance and subset the data. Variables for different sampling times are still within each subset.
+
 
 ```{r echo=FALSE, warning=FALSE}
 CMA<-subset(data3, Location=="CM")
@@ -134,7 +139,9 @@ prod(lseries(0.01, data3$mean_replicate))
 prod(lseries(0.5, data3$mean_replicate))  
 ```
 
+
 ### The infinite values from the 0's in our data are a problem. Here is a messy workaround, but for more discussion see [this article.](https://www.researchgate.net/post/Log_transformation_of_values_that_include_0_zero_for_statistical_analyses2)
+
 
 ```{r}
 data3$mean2<-data3$mean_replicate+0.000000001
@@ -144,7 +151,9 @@ sum(log(lseries(0.01, data3$mean2)))
 sum(log(lseries(0.001, data3$mean2)))
 ```
 
+
 ### Now we look at the max likelihood to get the max likelihood estimate of our logseries distribution. What's the best beta value?
+
 
 ```{r echo=FALSE}
 bb <- seq(0.001, 0.2, length.out = 50)
@@ -152,7 +161,9 @@ ll <- sapply(bb, function(b) sum(log(lseries(b, data3$mean2))))
 plot(bb, ll, xlab = 'b parameter', ylab = 'log likelihood')
 ```
 
+
 ### Looks to be around 0.06. Let's optimize to find out the exact value:
+
 
 ```{r}
 llLSeries <- function(b, n) {
@@ -181,7 +192,9 @@ curve(dnorm(x, fit3$estimate[1], fit3$estimate[2]), col="orange", lwd=2, add=T)
 curve(dnorm(x, fit4$estimate[1], fit4$estimate[2]), col="green", lwd=2, add=T)
 ```
 
+
 ### It looks like the log normal (blue) distribution and the weibull (green) distribution might be the best fit for our data.
+
 
 ```{r}
 log_likelihood <- function(params) { -sum(dnorm(data3$mean2, params[1], params[2], log=TRUE)) }
@@ -191,7 +204,9 @@ fitll
 
 What does this mean?
 
+
 ### Fitdistrplus can make this process a bit easier with neat descriptive stats:
+
 
 ```{r}
 plotdist(data3$mean2, histo = TRUE, demp = TRUE)
@@ -251,7 +266,9 @@ plot(ests)
 quantile(ests, probs=.05) 
 ```
 
+
 ## From Delignette-Muller, 2014 (updated 2020)
+
 
 "In ecotoxicology, a lognormal or a loglogistic distribution is often fitted to such a data set in order to characterize the species sensitivity distribution (SSD) for a pollutant. A low percentile of the fitted distribution, generally the 5% percentile, is then calculated and named the hazardous concentration 5% (HC5). It is interpreted as the value of the pollutant concentration protecting 95% of the species (Posthuma et al., 2010)." The above quantile code was made to describe the HC5 of a dataset of the acute toxicity of endosulfan for different species described best by the Burr distribution.
 
@@ -266,7 +283,9 @@ q<- 2
 hillR::hill_taxa(metals_sad, q)
 ```
 
+
 ## So is there a difference in metal richness comparing the different locations and materials used in the experiment?
+
 
 ```{r echo=TRUE}
 hill_taxa(EOS_LDPE$mean_replicate, 0)
@@ -282,6 +301,7 @@ hill_taxa(CMA_Glass$mean_replicate, 0)
 hill_taxa(EOS_PLA$mean_replicate, 0)
 hill_taxa(CMA_PLA$mean_replicate, 0)
 ```
+
 
 ## The metal richness is consistently higher at the Estuary and Ocean Science Center.
 
@@ -295,6 +315,7 @@ hill_taxa(CMA_PLA$mean_replicate, 0)
 hill_taxa(CMA_Glass$mean_replicate, 0)
 
 ```
+
 
 ## It seems that the differences among material types are not as big as the differences between locations (99, 93 and 98 for the materials at EOS vs 78, 69, and 81 for the materials at CMA). Neat!
 
