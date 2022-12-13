@@ -6,15 +6,13 @@ editor: visual
 ---
 
 ```{r}
+library(RCurl)
 library(ggplot2)
 library(hillR)
 library(reshape2)
 library(dplyr)
 library(MASS)
 library(fitdistrplus)
-
-data<-read.csv('~/Desktop/Heather.Richard//EvoEcoTheory/metalsdata.csv')
-head(data)
 ```
 
 # Project Overview
@@ -38,17 +36,9 @@ head(data)
 We will need to approach this project as though different metal types are different species. We start by loading the libraries we will need and the data we are using.
 
 ```{r}
-library(RCurl)
-library(ggplot2)
-library(hillR)
-library(reshape2)
-library(dplyr)
-library(MASS)
-library(fitdistrplus)
-
 x <- getURL("https://raw.githubusercontent.com/HLR-04614/final-project/main/metalsdata.csv")
 data <- read.csv(text = x)
-#data<-read.csv('~/Desktop/Heather.Richard//EvoEcoTheory/metalsdata.csv')
+
 head(data)
 ```
 
