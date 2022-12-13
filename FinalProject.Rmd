@@ -15,6 +15,8 @@ library(hillR)
 library(reshape2)
 library(dplyr)
 library(MASS)
+#library(actuar)
+library(fitdistrplus)
 
 data<-read.csv('~/Desktop/Heather.Richard//EvoEcoTheory/metalsdata.csv')
 head(data)
@@ -223,7 +225,7 @@ optimize(llLSeries, interval = c(0, 10), n = data4$mean2, maximum = TRUE)
 
 ```
 #should look more into the NA/INF warning
-Pika isn't thrilled with working with non-intergers, so unless we can figure that out (multiply by 10000?) these next two chunks aren't going to work. Let's see... This error might be workable?
+Pika isn't thrilled with working with non-intergers, so unless we can figure that out (multiply by 10000?) these next two chunks are going to be messy. Let's see... This error might be workable?
 Error in uniroot(fun, .lseriesSolInt(xbar), tol = .Machine$double.eps) : 
 f() values at end points not of opposite sign.   https://stackoverflow.com/questions/38961221/uniroot-solution-in-r 
 but just stick with data4$mean2 for now.
@@ -283,11 +285,16 @@ logLikZ(nb)
 ```
 
 ##We're going to have to figure out how to deal with our non-interger numbers maybe, but none of these z values are very good- they are pretty huge which makes sense.
-We should try other distributions (Poisson, gamma, beta)
+We should try other distributions (Poisson, gamma, etc.)
 
 We'll use the MASS package 'fitdistr' using this tutorial: http://www.di.fc.ul.pt/~jpn/r/distributions/fitting.html
 
 ```{r}
+?fitdistr
+```
+
+
+```{r fitting other distributions, warning=FALSE}
 #playing with different data manipulations
 dist<-log(data4$mean_replicate)
 dist2<-dist[is.infinite(dist)] <- NA
@@ -295,29 +302,46 @@ dist3<- na.omit(dist2)
 dist3<-as.numeric(dist3)
 dist4<-log(data4$mean2)
 
-fit <- fitdistr(dist4, densfun="normal")  
+fit <- fitdistr(data4$mean2, densfun="normal")  
 fit
-```
 
-```{r}
-hist(dist4, pch=20, breaks=25, prob=TRUE, main="")
-curve(dnorm(x, fit$estimate[1], fit$estimate[2]), col="red", lwd=2, add=T)
-```
+fit1 <- fitdistr(data4$mean2, densfun="lognormal")  
+fit1
 
-##this isnt helpful, clearly adding a small value to the zeros makes things funky. But better than getting rid of them maybe.
-# c(0,1) are just initial guesses
-```{r}
-log_likelihood <- function(params) { -sum(dnorm(data4, params[1], params[2], log=TRUE)) }
-fit2 <- optim(c(0,1), log_likelihood)    
+fit2 <- fitdistr(data4$mean2, densfun="gamma")
 fit2
+
+fit3 <- fitdistr(data4$mean2, densfun="poisson")  
+fit3
+
+fit4 <- fitdistr(data4$mean2, densfun="weibull")
+fit4
 ```
-#nope nope
+
+```{r}
+hist(data4$mean2, pch=20, breaks=25, prob=TRUE, main="")
+curve(dnorm(x, fit$estimate[1], fit$estimate[2]), col="red", lwd=2, add=T)
+curve(dnorm(x, fit1$estimate[1], fit1$estimate[2]), col="blue", lwd=2, add=T)
+curve(dnorm(x, fit2$estimate[1], fit2$estimate[2]), col="yellow", lwd=2, add=T)
+curve(dnorm(x, fit3$estimate[1], fit3$estimate[2]), col="orange", lwd=2, add=T)
+curve(dnorm(x, fit4$estimate[1], fit4$estimate[2]), col="green", lwd=2, add=T)
+```
+
+##We know the data isn't normal, so that makes sense. Looks like log normal and weibull are the closest?
+Estimate log likelihood:
+ c(0,1) are just initial guesses
+```{r}
+log_likelihood <- function(params) { -sum(dnorm(data4$mean2, params[1], params[2], log=TRUE)) }
+fitll <- optim(c(0,1), log_likelihood)    
+fitll
+```
+#OK but what does it mean?
 
 ##Fitdistrplus is awesome!!
 ```{r}
 library(fitdistrplus)
 
-plotdist(dist4, histo = TRUE, demp = TRUE)
+plotdist(data4$mean2, histo = TRUE, demp = TRUE)
 ```
 ## the descdist function
 shows cool descriptive stats
@@ -326,27 +350,58 @@ shows cool descriptive stats
 #dist2 <- dist[!is.infinite(dist),]
 #dist3<- na.omit(dist) 
 #dist3<-as.numeric(dist3)
-descdist(dist4, discrete=FALSE, boot=500)
+descdist(data4$mean2, discrete=FALSE, boot=500)
 ```
 
-#is it valid to just make values positive for weibull dist?
+#Try the distributions using the library fitdistrplus
 ```{r}
-dist_pos<-dist4+21
+#dist_pos<-dist4+21
 
-fit_w  <- fitdist(dist_pos, "weibull")
-fit_g  <- fitdist(dist_pos, "gamma")
-fit_ln <- fitdist(dist_pos, "lnorm")
+fit_w  <- fitdist(data4$mean2, "weibull")
+fit_ln <- fitdist(data4$mean2, "lnorm")
+fit_g  <- fitdist(data4$mean2, "gamma")
+#fit_p  <- fitdist(data4$mean2, "Poisson")
+summary(fit_w)
 summary(fit_ln)
+summary(fit_g)
 ```
 
 ```{r}
 #par(mfrow=c(2,2))
 plot.legend <- c("Weibull", "lognormal", "gamma")
-denscomp(list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
-cdfcomp (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
-qqcomp  (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
-ppcomp  (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
+denscomp(list(fit_w, fit_ln, fit_g), legendtext = plot.legend)
+cdfcomp (list(fit_w, fit_ln, fit_g), legendtext = plot.legend)
+qqcomp  (list(fit_w, fit_ln, fit_g), legendtext = plot.legend)
+ppcomp  (list(fit_w, fit_ln, fit_g), legendtext = plot.legend)
 ```
+That's incredibly cool. I think gamma is the winner!
+the low AIC values confirm:
+summary(fit_w)
+Fitting of the distribution ' weibull ' by maximum likelihood 
+Parameters : 
+Loglikelihood:  2906.011   AIC:  -5808.021   BIC:  -5798.765 
+Correlation matrix:
+          shape     scale
+shape 1.0000000 0.3066056
+scale 0.3066056 1.0000000
+
+summary(fit_ln)
+Fitting of the distribution ' lnorm ' by maximum likelihood 
+Parameters : 
+Loglikelihood:  2844.158   AIC:  -5684.317   BIC:  -5675.061 
+Correlation matrix:
+             meanlog        sdlog
+meanlog 1.000000e+00 1.264609e-08
+sdlog   1.264609e-08 1.000000e+00
+
+summary(fit_g)
+Fitting of the distribution ' gamma ' by maximum likelihood 
+Parameters : 
+Loglikelihood:  2934.809   AIC:  -5865.618   BIC:  -5856.362 
+Correlation matrix:
+          shape      rate
+shape 1.0000000 0.2984592
+rate  0.2984592 1.0000000
 
 ```{r}
 par(mfrow=c(1,1))
@@ -354,26 +409,30 @@ par(mfrow=c(1,1))
 
 my_data <- data4$mean2
 
-fit_ln <- fitdist(my_data, "lnorm")
-cdfcomp(fit_ln, xlogscale = TRUE, ylogscale = TRUE)
+fit_gam <- fitdist(my_data, "gamma")
+cdfcomp(fit_gam, xlogscale = TRUE, ylogscale = TRUE)
 ```
-
+#Still working off of the tutorial http://www.di.fc.ul.pt/~jpn/r/distributions/fitting.html
 ```{r}
-library(actuar)
+##The code below gives error code 100
+#library(actuar)
 
-fit_ll <- fitdist(my_data, "llogis", start = list(shape = 1, scale = 500))
-fit_P  <- fitdist(my_data, "pareto", start = list(shape = 1, scale = 500))
-fit_B  <- fitdist(my_data, "burr",   start = list(shape1 = 0.3, shape2 = 1, rate = 1))
-cdfcomp(list(fit_ln, fit_ll, fit_P), xlogscale = TRUE, ylogscale = TRUE,
-        legendtext = c("lognormal", "loglogistic", "Pareto"))
+#fit_ll <- fitdist(my_data, "llogis", start = list(shape = 1, scale = 500)) #gives error code 100
+#fit_P  <- fitdist(my_data, "pareto", start = list(shape = 1, scale = 500))
+#fit_B  <- fitdist(my_data, "burr",   start = list(shape1 = 0.3, shape2 = 1, rate = 1))
+#cdfcomp(list(fit_ln, fit_ll, fit_P), xlogscale = TRUE, ylogscale = TRUE,
+ #       legendtext = c("lognormal", "loglogistic", "Pareto"))
+
+cdfcomp(list(fit_ln, fit_w, fit_g), xlogscale = TRUE, ylogscale = TRUE,
+        legendtext = c("lognormal", "weibull", "gamma"))
 ```
 #goodness of fit stats
 ```{r}
-gofstat(list(fit_ln, fit_ll, fit_P), fitnames = c("lnorm", "llogis", "Pareto"))
+gofstat(list(fit_ln, fit_w, fit_g), fitnames = c("lnorm", "weibull", "gamma"))
 ```
 #estimate uncertainty
 ```{r}
-ests <- bootdist(fit_ll, niter = 1e3)
+ests <- bootdist(fit_g, niter = 1e3)
 summary(ests)
 ```
 
@@ -385,9 +444,16 @@ plot(ests)
 ```{r}
 quantile(ests, probs=.05) 
 ```
+In addition to the tutorial we used, this document was really useful (https://cran.r-project.org/web/packages/fitdistrplus/vignettes/paper2JSS.pdf) and provided this insight:
+
+"In ecotoxicology, a lognormal or a loglogistic distribution is often fitted to such a data set in order to characterize the
+species sensitivity distribution (SSD) for a pollutant. A low percentile of the fitted distribution, generally the 5%
+percentile, is then calculated and named the hazardous concentration 5% (HC5). It is interpreted as the value of
+the pollutant concentration protecting 95% of the species (Posthuma et al., 2010)." The above quantile code was made to describe the HC5 of a dataset of the acute toxicity of endosulfan for different species described best by the Burr distribution. 
 
 
-#Try manual hill numbers
+
+##Try manual hill numbers from lecture with Renata
 
 ```{r}
 #head(data4)
