@@ -122,52 +122,63 @@ CMA_LDPE<-subset(CMA, CMA$Material=="LDPE")
 
 par(mfrow=c(2,3))
 plot(sort(EOS_LDPE$mean_replicate, decreasing = TRUE), log = 'y', 
-     xlab = 'Species rank', ylab = 'Abundance') 
+     xlab = 'Species rank', ylab = 'Abundance', main= "EOS LDPE") 
 plot(sort(EOS_PLA$mean_replicate, decreasing = TRUE), log = 'y', 
-     xlab = 'Species rank', ylab = 'Abundance') 
+     xlab = 'Species rank', ylab = 'Abundance', main= "EOS PLA") 
 plot(sort(EOS_Glass$mean_replicate, decreasing = TRUE), log = 'y', 
-     xlab = 'Species rank', ylab = 'Abundance') 
+     xlab = 'Species rank', ylab = 'Abundance', main= "EOS Glass") 
 plot(sort(CMA_LDPE$mean_replicate, decreasing = TRUE), log = 'y', 
-     xlab = 'Species rank', ylab = 'Abundance') 
+     xlab = 'Species rank', ylab = 'Abundance', main= "CMA LDPE") 
 plot(sort(CMA_PLA$mean_replicate, decreasing = TRUE), log = 'y', 
-     xlab = 'Species rank', ylab = 'Abundance') 
+     xlab = 'Species rank', ylab = 'Abundance', main= "CMA PLA") 
 plot(sort(CMA_Glass$mean_replicate, decreasing = TRUE), log = 'y', 
-     xlab = 'Species rank', ylab = 'Abundance') 
+     xlab = 'Species rank', ylab = 'Abundance', main= "CMA Glass") 
 
 ```
 
-```
+##Why figure out the equation to describe abundance distribution?
+Andy explains in the liklihood video that different functional forms can be associated with different processes. For example, logseries functions are associated with neutral processes while lognormal functions might have underlying species interactions. Alternatively, if different processes result in the same patterns in abundance, we can't distinguish the biological mechanisms at work based on the data.
 
-
+So does the logseries equation describe our data well? 
+b= beta. <-What is this?
+n= species abundance
+Species abundance data in the code is 1:50, but that's not quite going to work with our data since our metal "abundance" values are smaller continuous numbers. 
 ```{r logseries-eq}
 
 lseries <- function(b, n) {
    1/log(1 / (1 - exp(-b))) * exp(-b * n) / n
 }
 
-lseries(0.001, 0.001:50)
+lseries(0.001, 0.0001:100)
+```
 
+```{r}
 hist(data4$mean_replicate, probability = TRUE)
 
-points(0.001:50, lseries(0.0001, 0.001:50), col = 'red', type = 'b')
-points(0.001:50, lseries(0.001, 0.001:50), col = 'orange', type = 'b')
-points(0.001:50, lseries(0.01, 0.001:50), col = 'blue', type = 'b')
+points(0.0001:100, lseries(0.001, 0.0001:100), col = 'red', type = 'b')
+points(0.0001:100, lseries(0.01, 0.0001:100), col = 'orange', type = 'b')
+points(0.0001:100, lseries(0.1, 0.0001:100), col = 'blue', type = 'b')
 ```
+
+##Now we can see what the probability of our entire dataset (data4$mean_replicate) given different beta values
+```{r likelihood}
+# lseries(0.01, data4$mean_replicate) #It's a long list with inf values so this will have inf values too
+prod(lseries(0.01, data4$mean_replicate))
+prod(lseries(0.5, data4$mean_replicate))  
+```
+
+
 #Probably this histogram isn't ideal- might need to play with scale/bins
-Lets see what happens when we play with log scale and inversion
+Lets see what happens when we play with log scale and inversion.
+We can log transform our data but I don't know how to log transform our equations too. But we can just plot a set of gree points that are normally distributed to see how that looks.
+
 ```{r}
-
-lseries <- function(b, n) {
-  1 / log(1 / (1 - exp(-b))) * exp(-b * n) / n
-}
-
-lseries(0.001, 0.001:50)
 
 hist(log(data4$mean_replicate), probability = TRUE)
 
-points(0.001:50, lseries(0.0001, 0.001:50), col = 'red', type = 'b')
-points(0.001:50, lseries(0.001, 0.001:50), col = 'orange', type = 'b')
-points(0.001:50, lseries(0.01, 0.001:50), col = 'blue', type = 'b')
+points(0.0001:100, lseries(0.001, 0.0001:100), col = 'red', type = 'b')
+points(0.0001:100, lseries(0.01, 0.0001:100), col = 'orange', type = 'b')
+points(0.0001:100, lseries(0.1, 0.0001:100), col = 'blue', type = 'b')
 
 x <- seq(-10, 5, by = .1)
 y <- dnorm(x, mean = -2.0, sd = 3.0)
@@ -175,125 +186,152 @@ points(x,y, col="green")
 
 ```
 ##Have to log transform equation##
+Just want to play with the data for a minute. If I multiply the metal amounts by 1000 maybe I'll be working with numbers that don't cause issues? No, because 0*1000 is still 0. What if I add a tiny number? 
+This is messy. Here is some discussion on this:https://www.researchgate.net/post/Log_transformation_of_values_that_include_0_zero_for_statistical_analyses2
+will bookmark this and think of using gamma-, Poisson-, and beta- models instead. But for now...
 
-```{r likelihood-intro}
-data4$mean10<-10000*data4$mean_replicate
+```{r likelihood}
+#data4$mean10<-data4$mean_replicate*1000
+data4$mean2<-data4$mean_replicate+0.000000001
 
-sum(log(lseries(0.5, data4$mean10)))
-sum(log(lseries(0.0005, data4$mean10)))
-sum(log(lseries(0.0001, data4$mean10)))
+sum(log(lseries(0.1, data4$mean2)))
+sum(log(lseries(0.01, data4$mean2)))
+sum(log(lseries(0.001, data4$mean2)))
 
 
 ```
-#hmmm not sure why I'm only getting Inf or NaN. Let's move on
-
+#Nice! That worked
+Now we look at the max likelihood to get the max likelihood estimate of our logseries distribution. What's the best beta value?
 
 ```{r ll-curve, echo=FALSE}
-bb <- seq(0.001, 0.1, length.out = 50)
-ll <- sapply(bb, function(b) sum(log(lseries(b, data4$mean_replicate))))
-pdf('fig_ll.pdf', width = 4, height = 4)
-par(bg = 'black', fg = 'white', col.axis = 'white', col.lab = 'white')
+bb <- seq(0.001, 0.2, length.out = 50)
+ll <- sapply(bb, function(b) sum(log(lseries(b, data4$mean2))))
+#pdf('fig_ll.pdf', width = 4, height = 4)
+#par(bg = 'black', fg = 'white', col.axis = 'white', col.lab = 'white')
 plot(bb, ll, xlab = 'b parameter', ylab = 'log likelihood')
-dev.off()
-```
+#dev.off()
 
+```
+#Now we use a function for finding the optimal beta with the maximum log likelihood value
 
 ```{r maxloglik}
 
 llLSeries <- function(b, n) {
     sum(log(lseries(b, n)))
 }
-optimize(llLSeries, interval = c(0, 10), n = data4$mean_replicate, maximum = TRUE)
-```
+optimize(llLSeries, interval = c(0, 10), n = data4$mean2, maximum = TRUE)
 
-```{r pika}
+```
+#should look more into the NA/INF warning
+Pika isn't thrilled with working with non-intergers, so unless we can figure that out (multiply by 10000?) these next two chunks aren't going to work. Let's see... This error might be workable?
+Error in uniroot(fun, .lseriesSolInt(xbar), tol = .Machine$double.eps) : 
+f() values at end points not of opposite sign.   https://stackoverflow.com/questions/38961221/uniroot-solution-in-r 
+but just stick with data4$mean2 for now.
+```{r pika, warning=FALSE}
 #devtools::install_github('ajrominger/pika')
 library(pika)
-s <- sad(data4$mean_replicate, 'lseries')
-s
+min(data4$mean2)
+data4$meanpika<-data4$mean2*1e09
+
+s <- sad(data4$mean2, 'lseries')
+#s
  
 logLik(s)
 ```
+#hm. I turned off the warnings about non-intergers in this chunk. loglik(s) is still infinite. Sigh. 
 
 ```{r}
 plot(s, ptype = 'rad') #how can I do this in ggplot so I can facet by variables?
 logLikZ(s)
-#pchisq(???, df = 1, lower.tail = FALSE)
+#pchisq(???, df = 1, lower.tail = FALSE) cant do this because logLikZ(s) is infinite
 ```
 
-```{r model-comparison}
+```{r model-comparison, warning=FALSE}
 
-ls <- sad(data4$mean_replicate, 'lseries')
-ln <- sad(data4$mean_replicate, 'plnorm')
-nb <- sad(data4$mean_replicate, 'tnegb')
+ls <- sad(data4$mean2, 'lseries')
+ln <- sad(data4$mean2, 'plnorm')
+nb <- sad(data4$mean2, 'tnegb')
 
+logLik(ls)
+logLik(ln)
+logLik(nb)
+
+```
+#larger value means data are more probable. I think that means the ln model is better because the nb model is a very large negative number and the ln is a very small negative number? But the ls is infinite...??
+
+```{r}
 AIC(ls)
 AIC(ln)
 AIC(nb)
 
+#IF AIC is smaller by at least 2, it's substantially better
+```
+#Ok so the ln is better.
+
+```{r}
+par(mfrow=c(1,3))
 plot(ls, ptype = 'rad', log = 'y', main = 'logseries')
 plot(ln, ptype = 'rad', log = 'y', main = 'lognormal')
 plot(nb, ptype = 'rad', log = 'y', main = 'negbinom')
-
-logLikZ(ls)
-logLikZ(nb)
-
-#IF AIC is smaller by at least 2, it's substantially better
 ```
-##We're going to have to figure out how to deal with our non-interger numbers.
+#look at those plots. I don't know if I buy it.
+look at goodness of fit with logLikZ
+```{r}
+logLikZ(ls)
+logLikZ(ln)
+logLikZ(nb)
+```
+
+##We're going to have to figure out how to deal with our non-interger numbers maybe, but none of these z values are very good- they are pretty huge which makes sense.
+We should try other distributions (Poisson, gamma, beta)
+
 We'll use the MASS package 'fitdistr' using this tutorial: http://www.di.fc.ul.pt/~jpn/r/distributions/fitting.html
 
 ```{r}
-
+#playing with different data manipulations
 dist<-log(data4$mean_replicate)
 dist2<-dist[is.infinite(dist)] <- NA
 dist3<- na.omit(dist2) 
 dist3<-as.numeric(dist3)
+dist4<-log(data4$mean2)
 
-fit <- fitdistr(dist3, densfun="normal")  
+fit <- fitdistr(dist4, densfun="normal")  
 fit
 ```
 
 ```{r}
-hist(dist3, pch=20, breaks=25, prob=TRUE, main="")
+hist(dist4, pch=20, breaks=25, prob=TRUE, main="")
 curve(dnorm(x, fit$estimate[1], fit$estimate[2]), col="red", lwd=2, add=T)
 ```
 
-##this isnt helpful I don't know how to deal with my infiniteness
+##this isnt helpful, clearly adding a small value to the zeros makes things funky. But better than getting rid of them maybe.
 # c(0,1) are just initial guesses
 ```{r}
 log_likelihood <- function(params) { -sum(dnorm(data4, params[1], params[2], log=TRUE)) }
 fit2 <- optim(c(0,1), log_likelihood)    
 fit2
 ```
+#nope nope
 
 ##Fitdistrplus is awesome!!
 ```{r}
 library(fitdistrplus)
 
-plotdist(dist, histo = TRUE, demp = TRUE)
+plotdist(dist4, histo = TRUE, demp = TRUE)
 ```
-
-descriptive stats like the moments still skunked by infinite
-summary statistics
-------
-min:  -11.81553   max:  4.924509 
-median:  -2.720764 
-mean:  -2.196845 
-estimated sd:  3.769838 
-estimated skewness:  0.07809318 
-estimated kurtosis:  2.152025 
+## the descdist function
+shows cool descriptive stats
 
 ```{r}
-dist2 <- dist[!is.infinite(dist),]
-dist3<- na.omit(dist) 
-dist3<-as.numeric(dist3)
-descdist(dist3, discrete=FALSE, boot=500)
+#dist2 <- dist[!is.infinite(dist),]
+#dist3<- na.omit(dist) 
+#dist3<-as.numeric(dist3)
+descdist(dist4, discrete=FALSE, boot=500)
 ```
 
 #is it valid to just make values positive for weibull dist?
 ```{r}
-dist_pos<-dist3+20
+dist_pos<-dist4+21
 
 fit_w  <- fitdist(dist_pos, "weibull")
 fit_g  <- fitdist(dist_pos, "gamma")
@@ -302,7 +340,7 @@ summary(fit_ln)
 ```
 
 ```{r}
-par(mfrow=c(2,2))
+#par(mfrow=c(2,2))
 plot.legend <- c("Weibull", "lognormal", "gamma")
 denscomp(list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
 cdfcomp (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
@@ -313,19 +351,19 @@ ppcomp  (list(fit_w, fit_g, fit_ln), legendtext = plot.legend)
 ```{r}
 par(mfrow=c(1,1))
 
-data("endosulfan", package = "fitdistrplus")
-my_data <- data4$mean_replicate
 
-fit_ln <- fitdist(dist_pos, "lnorm")
+my_data <- data4$mean2
+
+fit_ln <- fitdist(my_data, "lnorm")
 cdfcomp(fit_ln, xlogscale = TRUE, ylogscale = TRUE)
 ```
 
 ```{r}
 library(actuar)
 
-fit_ll <- fitdist(dist_pos, "llogis", start = list(shape = 1, scale = 500))
-fit_P  <- fitdist(dist_pos, "pareto", start = list(shape = 1, scale = 500))
-fit_B  <- fitdist(dist_pos, "burr",   start = list(shape1 = 0.3, shape2 = 1, rate = 1))
+fit_ll <- fitdist(my_data, "llogis", start = list(shape = 1, scale = 500))
+fit_P  <- fitdist(my_data, "pareto", start = list(shape = 1, scale = 500))
+fit_B  <- fitdist(my_data, "burr",   start = list(shape1 = 0.3, shape2 = 1, rate = 1))
 cdfcomp(list(fit_ln, fit_ll, fit_P), xlogscale = TRUE, ylogscale = TRUE,
         legendtext = c("lognormal", "loglogistic", "Pareto"))
 ```
@@ -352,9 +390,10 @@ quantile(ests, probs=.05)
 #Try manual hill numbers
 
 ```{r}
-ggplot(data3, aes(mean_replicate, variable)) +
+#head(data4)
+ggplot(data4, aes(mean_replicate, variable, color=Day.deploy)) +
   scale_x_log10() +
-  geom_line()+
+  geom_point()+
   facet_grid(Location~Material)
 ```
 
@@ -363,22 +402,23 @@ ggplot(data3, aes(mean_replicate, variable)) +
 equation 3a qD = () p_i is the relative abundance of species (scales sums to 1) similar to song_sad but different. where for each species p_i is the number of plays for that species/song q is the order of the hill number. q cannot be exactly 1 to get Hill numbers as q gets close to 1 use: q\<-1-E-5 ##don't get this part can also use the equation 3b from the hill paper
 
 ```{r pressure, echo=TRUE}
-songs_sad<-data2$value
+head(data4)
+metals_sad<-data4$mean_replicate
 q<- 2
-songs_relabund<- songs_sad/sum(songs_sad)
-head(songs_relabund)
-sum(songs_relabund)
+metals_relabund<- metals_sad/sum(metals_sad)
+head(metals_relabund)
+sum(metals_relabund)
 ```
 
 now raise relative abundance of species to the power of q and take the sum of all values\
 
 ```{r}
-songs_relabund_toq<- songs_relabund^q
-head(songs_relabund_toq)
+metals_relabund_toq<- metals_relabund^q
+head(metals_relabund_toq)
 ```
 
 ```{r}
-summed_relabund<-sum(songs_relabund_toq)
+summed_relabund<-sum(metals_relabund_toq)
 summed_relabund_exponent <- summed_relabund ^(1/1-q)
 summed_relabund_exponent
 ```
@@ -386,11 +426,11 @@ summed_relabund_exponent
 In some cases it breaks, but for the most part this command below does what we did manually in the steps above
 
 ```{r}
-hillR::hill_taxa(songs_sad, q)
+hillR::hill_taxa(metals_sad, q)
 ```
 
 
 ```{r}
-use_git()
+#use_git()
 ```
 
