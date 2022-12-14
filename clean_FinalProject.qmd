@@ -1,6 +1,6 @@
 ---
 title: "Final Presentation"
-author: "Heather Richard and Beth Davis"
+author: "Heather Richard, Boo Richard, and Beth Davis"
 format: revealjs
 editor: visual
 ---
@@ -20,6 +20,8 @@ library(fitdistrplus)
 # What was your question?
 
 -   We used data from an experiment done in 2015 in the San Francisco Bay looking at metal accumulation (ng/mL) with biofilm growth over a span of 28 days at California Maritime Academy (CMA) and Estuary and Ocean Science Center (EOS) on three different pelleted materials: low-density polyethylene (LDPE), polylactic acid (PLA) and glass.
+
+    ![Graphical abstract from Richard et al. 2019](images/richards2019.jpg)
 
     ![](images/paste-49617460.png)
 
@@ -42,14 +44,14 @@ data <- read.csv(text = x)
 head(data)
 ```
 
-# We need to format it so it will work with some of the code we tried in class. We use optical density as a proxy for biofilm and keep it as an ID variable for later analysis.
+We need to format it so it will work with some of the code we tried in class. We use optical density as a proxy for biofilm and keep it as an ID variable for later analysis.
 
 ```{r}
 data1<-melt(data, id = c("Number","Sample","Weight","Unbrushed", "Location","Material","Day.deploy","Optical.density","Replicate")) 
 
 ```
 
-# Then group the data and average into a column called "mean_replicate"
+Then group the data and average into a column called "mean_replicate"
 
 ```{r}
 data2 <- data1 %>% group_by(variable, Location, Day.deploy, Material) %>% summarize(mean_replicate=mean(value), stdev=sd(value))
@@ -57,7 +59,7 @@ data2 <- data1 %>% group_by(variable, Location, Day.deploy, Material) %>% summar
 head(data2)
 ```
 
-#Then add a column for rank so we can work with Hill Numbers later.
+Then add a column for rank so we can work with Hill Numbers later.
 
 ```{r}
 data3<-data2 %>% arrange(variable, mean_replicate) %>%
@@ -65,6 +67,8 @@ data3<-data2 %>% arrange(variable, mean_replicate) %>%
     mutate(rank = rank(mean_replicate))
 head(data3)
 ```
+
+Now we can create an exploratory graph based on material and date of deployment
 
 ```{r Data}
 ggplot(data3, aes(rank, mean_replicate, color=Day.deploy)) +
@@ -75,7 +79,7 @@ ggplot(data3, aes(rank, mean_replicate, color=Day.deploy)) +
   theme_bw()
 ```
 
-# We start by running the code from "[Notes on likelihood](https://github.com/eco-evo-thr-2022/10-likelihood/blob/main/likelihood_how-to.Rmd)" from lab 10. To make the data look like SADs, we need to sort in decreasing rank abundance and subset the data. Variables for different sampling times are still within each subset.
+We start by running the code from "[Notes on likelihood](https://github.com/eco-evo-thr-2022/10-likelihood/blob/main/likelihood_how-to.Rmd)" from lab 10. To make the data look like SADs, we need to sort in decreasing rank abundance and subset the data. Variables for different sampling times are still within each subset.
 
 ```{r warning=FALSE}
 CMA<-subset(data3, Location=="CM")
@@ -89,24 +93,22 @@ CMA_LDPE<-subset(CMA, CMA$Material=="LDPE")
 
 
 par(mfrow=c(2,3))
-plot(sort(EOS_LDPE$mean_replicate, decreasing = TRUE), log = 'y', 
-     xlab = 'Species rank', ylab = 'Abundance', main= "EOS LDPE") 
-plot(sort(EOS_PLA$mean_replicate, decreasing = TRUE), log = 'y', 
-     xlab = 'Species rank', ylab = 'Abundance', main= "EOS PLA") 
-plot(sort(EOS_Glass$mean_replicate, decreasing = TRUE), log = 'y', 
-     xlab = 'Species rank', ylab = 'Abundance', main= "EOS Glass") 
-plot(sort(CMA_LDPE$mean_replicate, decreasing = TRUE), log = 'y', 
-     xlab = 'Species rank', ylab = 'Abundance', main= "CMA LDPE") 
-plot(sort(CMA_PLA$mean_replicate, decreasing = TRUE), log = 'y', 
-     xlab = 'Species rank', ylab = 'Abundance', main= "CMA PLA") 
-plot(sort(CMA_Glass$mean_replicate, decreasing = TRUE), log = 'y', 
-     xlab = 'Species rank', ylab = 'Abundance', main= "CMA Glass") 
+plot(sort(EOS_LDPE$mean_replicate, decreasing = TRUE), log = 'y', xlab = 'Species rank', ylab = 'Abundance', main= "EOS LDPE") 
 
+plot(sort(EOS_PLA$mean_replicate, decreasing = TRUE), log = 'y', xlab = 'Species rank', ylab = 'Abundance', main= "EOS PLA") 
+
+plot(sort(EOS_Glass$mean_replicate, decreasing = TRUE), log = 'y', xlab = 'Species rank', ylab = 'Abundance', main= "EOS Glass") 
+
+plot(sort(CMA_LDPE$mean_replicate, decreasing = TRUE), log = 'y', xlab = 'Species rank', ylab = 'Abundance', main= "CMA LDPE") 
+
+plot(sort(CMA_PLA$mean_replicate, decreasing = TRUE), log = 'y', xlab = 'Species rank', ylab = 'Abundance', main= "CMA PLA") 
+
+plot(sort(CMA_Glass$mean_replicate, decreasing = TRUE), log = 'y', xlab = 'Species rank', ylab = 'Abundance', main= "CMA Glass") 
 ```
 
 These plots look pretty similar, so for simplicity sake maybe we can analyze them all together for now.
 
-# Does the log series equation describe our data well? That could indicate neutral processes.
+Does the log series equation describe our data well? That could indicate neutral processes.
 
 b= beta. \<-What is this?
 
@@ -116,8 +118,7 @@ Species abundance data in the code is 1:50, but that's not quite going to work w
 
 ```{r Histogram }
 lseries <- function(b, n) {
-   1/log(1 / (1 - exp(-b))) * exp(-b * n) / n
-}
+   1/log(1 / (1 - exp(-b))) * exp(-b * n) / n}
 
 #lseries(0.001, 0.0001:100)
 
@@ -134,7 +135,7 @@ prod(lseries(0.01, data3$mean_replicate))
 prod(lseries(0.5, data3$mean_replicate))  
 ```
 
-# The infinite values from the 0's in our data are a problem. Here is a messy workaround, but for more discussion see [this article.](https://www.researchgate.net/post/Log_transformation_of_values_that_include_0_zero_for_statistical_analyses2)
+The infinite values from the 0's in our data are a problem. Here is a messy workaround, but for more discussion see [this article.](https://www.researchgate.net/post/Log_transformation_of_values_that_include_0_zero_for_statistical_analyses2)
 
 ```{r include=TRUE}
 data3$mean2<-data3$mean_replicate+0.000000001
@@ -144,7 +145,7 @@ sum(log(lseries(0.01, data3$mean2)))
 sum(log(lseries(0.001, data3$mean2)))
 ```
 
-# Now we look at the max likelihood to get the max likelihood estimate of our logseries distribution. What's the best beta value?
+Now we look at the max likelihood to get the max likelihood estimate of our logseries distribution. What's the best beta value?
 
 ```{r echo=FALSE}
 bb <- seq(0.001, 0.2, length.out = 50)
@@ -152,17 +153,17 @@ ll <- sapply(bb, function(b) sum(log(lseries(b, data3$mean2))))
 plot(bb, ll, xlab = 'b parameter', ylab = 'log likelihood')
 ```
 
-### Looks to be around 0.06. Let's optimize to find out the exact value:
+Looks to be around 0.06. Let's optimize to find out the exact value:
 
 ```{r}
 llLSeries <- function(b, n) {
     sum(log(lseries(b, n)))
 }
 optimize(llLSeries, interval = c(0, 10), n = data3$mean2, maximum = TRUE)
-
+# This may show an 'NA/Inf replaced by maximum positive value' error
 ```
 
-### What did you find? OR, what obstacles did you encounter?
+#### What did you find? OR, what obstacles did you encounter?
 
 We had a hard time with our data because of the 0 values and the non-integer nature of our metal amounts. For this reason, we chose to use the fitdistr function from the MASS package and fitdist from the fitdistrplus package to help us figure out distributions that might better describe our data, following [this tutorial](http://www.di.fc.ul.pt/~jpn/r/distributions/fitting.html) with [this document](https://cran.r-project.org/web/packages/fitdistrplus/vignettes/paper2JSS.pdf) for additional background information.
 
@@ -181,7 +182,7 @@ curve(dnorm(x, fit3$estimate[1], fit3$estimate[2]), col="orange", lwd=2, add=T)
 curve(dnorm(x, fit4$estimate[1], fit4$estimate[2]), col="green", lwd=2, add=T)
 ```
 
-#It looks like the log normal (blue) distribution and the weibull (green) distribution might be the best fit for our data.
+It looks like the log normal (blue) distribution and the weibull (green) distribution might be the best fit for our data.
 
 ```{r}
 log_likelihood <- function(params) { -sum(dnorm(data3$mean2, params[1], params[2], log=TRUE)) }
@@ -189,15 +190,15 @@ fitll <- optim(c(0,1), log_likelihood)
 fitll
 ```
 
-What does this mean?
+#### What does this mean?
 
-# Fitdistrplus can make this process a bit easier with neat descriptive stats:
+Fitdistrplus can make this process a bit easier with neat descriptive stats:
 
 ```{r}
 plotdist(data3$mean2, histo = TRUE, demp = TRUE)
 ```
 
-# descdist
+descdist
 
 ```{r}
 descdist(data3$mean2, discrete=FALSE, boot=500)
@@ -213,7 +214,7 @@ summary(fit_ln)
 summary(fit_g)
 ```
 
-# CDFs
+CDFs
 
 ```{r echo=FALSE}
 par(mfrow=c(2,2))
@@ -225,14 +226,14 @@ ppcomp  (list(fit_w, fit_ln, fit_g), legendtext = plot.legend)
 
 ```
 
-# cdfcomp
+cdfcomp
 
 ```{r}
 cdfcomp(list(fit_ln, fit_w, fit_g), xlogscale = TRUE, ylogscale = TRUE,
         legendtext = c("lognormal", "weibull", "gamma"))
 ```
 
-# Goodness of fit stats
+Goodness of fit stats
 
 ```{r include=TRUE}
 gofstat(list(fit_ln, fit_w, fit_g), fitnames = c("lnorm", "weibull", "gamma"))
@@ -241,6 +242,7 @@ gofstat(list(fit_ln, fit_w, fit_g), fitnames = c("lnorm", "weibull", "gamma"))
 ```{r include=TRUE}
 ests <- bootdist(fit_g, niter = 1e3)
 summary(ests)
+# ^ This may take some time to run, don't interrupt it!
 ```
 
 ```{r}
@@ -251,7 +253,7 @@ plot(ests)
 quantile(ests, probs=.05) 
 ```
 
-## From Delignette-Muller, 2014 (updated 2020)
+#### From Delignette-Muller, 2014 (updated 2020)
 
 "In ecotoxicology, a lognormal or a loglogistic distribution is often fitted to such a data set in order to characterize the species sensitivity distribution (SSD) for a pollutant. A low percentile of the fitted distribution, generally the 5% percentile, is then calculated and named the hazardous concentration 5% (HC5). It is interpreted as the value of the pollutant concentration protecting 95% of the species (Posthuma et al., 2010)." The above quantile code was made to describe the HC5 of a dataset of the acute toxicity of endosulfan for different species described best by the Burr distribution.
 
@@ -266,37 +268,34 @@ q<- 2
 hillR::hill_taxa(metals_sad, q)
 ```
 
-## So is there a difference in metal richness comparing the different locations and materials used in the experiment?
+So is there a difference in metal richness comparing the different locations and materials used in the experiment?
 
 ```{r echo=TRUE}
-hill_taxa(EOS_LDPE$mean_replicate, 0)
-hill_taxa(CMA_LDPE$mean_replicate, 0)
+ELDPE <- hill_taxa(EOS_LDPE$mean_replicate, 0) # Result: 99
+CLDPE <- hill_taxa(CMA_LDPE$mean_replicate, 0) # Result: 78
 ```
 
 ```{r echo=TRUE}
-hill_taxa(EOS_Glass$mean_replicate, 0)
-hill_taxa(CMA_Glass$mean_replicate, 0)
+EGlass <- hill_taxa(EOS_Glass$mean_replicate, 0) # Result: 98
+CGlass <- hill_taxa(CMA_Glass$mean_replicate, 0) # Result: 81
 ```
 
 ```{r echo=TRUE}
-hill_taxa(EOS_PLA$mean_replicate, 0)
-hill_taxa(CMA_PLA$mean_replicate, 0)
+EPLA <- hill_taxa(EOS_PLA$mean_replicate, 0) # Result: 93
+CPLA <- hill_taxa(CMA_PLA$mean_replicate, 0) # Result: 69
 ```
 
-## The metal richness is consistently higher at the Estuary and Ocean Science Center.
+The metal richness is consistently higher at the Estuary and Ocean Science Center.
 
 ```{r echo=TRUE}
-hill_taxa(EOS_LDPE$mean_replicate, 0)
-hill_taxa(EOS_PLA$mean_replicate, 0)
-hill_taxa(EOS_Glass$mean_replicate, 0)
+hilltaxa <- matrix(c(ELDPE, CLDPE, EGlass, CGlass, EPLA, CPLA), ncol = 2, byrow = TRUE)
+colnames(hilltaxa) <- c('Estuary Metal Richness', 'OSC Metal Richness')
+rownames(hilltaxa) <- c('LDPE', 'Glass', 'PLA')
 
-hill_taxa(CMA_LDPE$mean_replicate, 0)
-hill_taxa(CMA_PLA$mean_replicate, 0)
-hill_taxa(CMA_Glass$mean_replicate, 0)
-
+hilltaxa
 ```
 
-## It seems that the differences among material types are not as big as the differences between locations (99, 93 and 98 for the materials at EOS vs 78, 69, and 81 for the materials at CMA). Neat!
+It seems that the differences among material types are not as big as the differences between locations (99, 93 and 98 for the materials at EOS vs 78, 69, and 81 for the materials at CMA). Neat!
 
 ## What do you think are the next steps?
 
