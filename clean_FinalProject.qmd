@@ -21,7 +21,7 @@ library(fitdistrplus)
 
 -   We used data from an experiment done in 2015 in the San Francisco Bay looking at metal accumulation (ng/mL) with biofilm growth over a span of 28 days at California Maritime Academy (CMA) and Estuary and Ocean Science Center (EOS) on three different pelleted materials: low-density polyethylene (LDPE), polylactic acid (PLA) and glass.
 
-    ![Graphical abstract from Richard et al. 2019](images/richards2019.jpg)
+    ![](images/richard2019.jpg)
 
     ![](images/paste-49617460.png)
 
